@@ -1,0 +1,443 @@
+// ──────────────────────────────────────────────────────────────────────────
+// Hardcoded news corpus — ~300 articles across 15 topics, 6 regions, 16 outlets
+// Used as a stand-in for NewsAPI in prototype mode (no API keys required).
+// Tuple format keeps the file dense and editable: [source, region, tone, title, description]
+// ──────────────────────────────────────────────────────────────────────────
+
+const NOW = Date.now();
+const daysAgo = (d) => new Date(NOW - d * 86400000).toISOString();
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 60);
+
+const SEEDS = {
+  // ─── 1. GAZA / ISRAEL / PALESTINE ────────────────────────────────────────
+  gaza: {
+    aliases: ['gaza', 'israel', 'palestine', 'palestinian', 'ceasefire', 'hamas', 'idf', 'west bank', 'rafah', 'hostage'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'Mediators announce framework for Gaza ceasefire pause', 'Egyptian and Qatari diplomats outlined a 60-day humanitarian pause now under final review by both parties.'],
+      ['BBC', 'Western', 'neutral', 'UN warns acute food insecurity persists in northern Gaza', 'Latest IPC assessment finds catastrophic conditions despite increased aid corridor activity.'],
+      ['Associated Press', 'Western', 'neutral', 'Israeli cabinet to vote on phased hostage release proposal', 'Wartime cabinet split over scope of prisoner exchange tied to truce framework.'],
+      ['Al Jazeera', 'Regional', 'critical', 'Gaza casualty toll surpasses 47,000, health ministry says', 'Figures, disputed by Israeli officials, paint a grim picture of civilian losses across the strip.'],
+      ['The New York Times', 'Western', 'sympathetic', 'Inside the negotiating room: how a fragile deal nearly collapsed', 'Reporting from Cairo reveals the personal diplomacy holding the latest round of talks together.'],
+      ['Le Monde', 'European', 'measured', 'Macron pushes for European role in post-conflict reconstruction', 'French diplomacy seeks to reassert influence in a process dominated by Washington and Doha.'],
+      ['Haaretz', 'Israeli', 'critical', 'Israeli reservists question the war\'s strategic objectives', 'Growing dissent within the ranks signals fatigue after 18 months of operations.'],
+      ['Times of Israel', 'Israeli', 'supportive', 'IDF says Hamas tunnel network largely dismantled in southern sectors', 'Military spokesperson cites 90% reduction in subterranean operations.'],
+      ['The Guardian', 'European', 'critical', 'Aid agencies decry "deliberate" obstruction at northern crossings', 'Multiple NGOs jointly accuse parties to the conflict of weaponizing access.'],
+      ['Deutsche Welle', 'European', 'measured', 'German weapons export review heads to constitutional court', 'Coalition tensions over arms shipments to Israel reach a legal flashpoint in Karlsruhe.'],
+      ['Xinhua', 'Eastern', 'critical', 'Beijing renews call for two-state solution at UN Security Council', 'Chinese envoy criticizes "unilateral" actions undermining long-term peace prospects.'],
+      ['Asahi Shimbun', 'Eastern', 'measured', 'Japan increases humanitarian funding for Gaza by 40%', 'Tokyo expands UNRWA contributions despite ongoing controversy over agency vetting.'],
+      ['Bloomberg', 'Western', 'neutral', 'Egyptian pound under pressure as conflict drags on Suez revenue', 'Houthi-linked Red Sea attacks compound fiscal strain on Cairo\'s already stretched budget.'],
+      ['El País', 'European', 'critical', 'Spanish parliament recognizes Palestine in symbolic vote', 'Move follows similar steps by Norway and Ireland; Israel recalls its envoy in protest.'],
+      ['Financial Times', 'Western', 'neutral', 'Insurance premiums for Eastern Mediterranean shipping triple', 'Underwriters cite escalating risk profile across multiple maritime corridors.'],
+      ['Al Arabiya', 'Regional', 'measured', 'Saudi-led Arab summit drafts joint reconstruction blueprint', 'Riyadh positions itself as the financial backbone of post-war recovery efforts.'],
+      ['Times of India', 'Eastern', 'neutral', 'India boosts trade with Israel despite regional pressure', 'New Delhi signs $1.2B defense package while balancing diplomacy with Tehran.'],
+      ['Reuters', 'Western', 'neutral', 'World Bank pegs Gaza reconstruction at $80B over 15 years', 'Joint assessment with EU and UN released ahead of an upcoming donor conference.'],
+      ['BBC', 'Western', 'sympathetic', 'Voices from a displaced Rafah family three months on', 'Long-form documentary follows one household navigating Egypt\'s border bureaucracy.'],
+      ['Al Jazeera', 'Regional', 'critical', 'Investigation: white phosphorus use disputed across multiple sites', 'Independent forensic researchers contest IDF denials on documented incidents.'],
+    ],
+  },
+
+  // ─── 2. UKRAINE / RUSSIA ──────────────────────────────────────────────────
+  ukraine: {
+    aliases: ['ukraine', 'russia', 'putin', 'zelensky', 'kyiv', 'kremlin', 'donbas', 'crimea', 'nato'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'Ukraine repels overnight drone barrage on energy grid', 'Air force reports 32 of 41 Shahed-type drones intercepted; outages briefly hit four oblasts.'],
+      ['BBC', 'Western', 'neutral', 'EU agrees on $50B Ukraine aid package after Hungary climbdown', 'Budapest drops veto threat in exchange for review clauses every two years.'],
+      ['Associated Press', 'Western', 'neutral', 'Front line near Avdiivka stabilizes after winter offensive', 'Ukrainian commanders report new defensive lines hold against repeated Russian probes.'],
+      ['The New York Times', 'Western', 'sympathetic', 'Ukrainian conscription tightens as manpower gap widens', 'Reporters embed with mobilization officers struggling to meet new quotas.'],
+      ['The Guardian', 'European', 'sympathetic', 'British training program produces 50,000th Ukrainian soldier', 'Operation Interflex marks milestone amid debate over expanded NATO involvement.'],
+      ['Le Monde', 'European', 'measured', 'France delivers third batch of SCALP cruise missiles', 'Paris framing emphasizes "defensive" use along Ukrainian-held territory.'],
+      ['Deutsche Welle', 'European', 'measured', 'German Taurus debate resurfaces in Bundestag', 'Coalition partners revisit long-stalled long-range missile transfer question.'],
+      ['Xinhua', 'Eastern', 'critical', 'Beijing reiterates "objective and impartial" stance on Ukraine', 'Foreign ministry rejects characterizations of Chinese components in Russian munitions.'],
+      ['RIA Novosti', 'Eastern', 'supportive', 'Russian forces report tactical gains east of Pokrovsk', 'Defense ministry briefing highlights captured villages and equipment losses.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Global South split widens over Ukraine peace formula', 'Brazilian and South African envoys push alternative framework at UN.'],
+      ['Bloomberg', 'Western', 'neutral', 'Russian oil price cap shows new signs of erosion', 'Treasury data indicates more shipments now trading above $60-per-barrel threshold.'],
+      ['Financial Times', 'Western', 'neutral', 'EU prepares to use frozen Russian assets for Ukraine bonds', 'Legal architecture nears completion despite Belgian and ECB reservations.'],
+      ['NYT', 'Western', 'neutral', 'Ukrainian energy minister: another tough winter ahead', 'Repeated strikes on substations leave reserve capacity at historic lows.'],
+      ['Reuters', 'Western', 'neutral', 'Black Sea grain corridor handles record monthly tonnage', 'Ukrainian-flagged shipments via "humanitarian corridor" reach 6.2M tonnes.'],
+      ['BBC', 'Western', 'measured', 'Wagner-successor groups expand footprint in West Africa', 'Africa Corps now operates in seven nations, displacing Western training missions.'],
+      ['El País', 'European', 'measured', 'Spain pledges 19 Leopard 2 tanks in new aid tranche', 'Madrid expands defense industrial cooperation alongside hardware deliveries.'],
+      ['The Guardian', 'European', 'critical', 'Investigation: civilian sites in Kharkiv hit four times in March', 'OSINT analysis confirms targeting patterns inconsistent with stated military objectives.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan announces fresh sanctions on Russian shadow fleet', 'Tokyo coordinates with G7 partners on tanker registry blacklists.'],
+      ['Times of India', 'Eastern', 'neutral', 'India\'s discounted Russian crude imports moderate in Q1', 'Refiners diversify cargoes amid evolving sanctions enforcement landscape.'],
+      ['Reuters', 'Western', 'neutral', 'IAEA inspectors report stable conditions at Zaporizhzhia plant', 'Mission rotation completed despite shelling reports near cooling reservoir.'],
+    ],
+  },
+
+  // ─── 3. CHINA / US TRADE ──────────────────────────────────────────────────
+  china: {
+    aliases: ['china', 'tariff', 'trade war', 'beijing', 'xi', 'us china', 'chinese', 'export controls', 'semiconductor'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'US announces new 25% tariff on Chinese EVs and batteries', 'Treasury cites "strategic sector" rationale; Beijing pledges "necessary countermeasures".'],
+      ['BBC', 'Western', 'neutral', 'China retaliates with rare-earth export licensing tightening', 'Ministry of Commerce expands case-by-case approval requirement to seven new categories.'],
+      ['Bloomberg', 'Western', 'neutral', 'WTO case filings hit decade high amid US-China salvos', 'Geneva docket shows 14 active disputes between the two largest economies.'],
+      ['Financial Times', 'Western', 'neutral', 'European Commission walks tightrope on Chinese EV duties', 'Provisional duties extended as Berlin pushes for negotiated solution.'],
+      ['Xinhua', 'Eastern', 'critical', 'Premier denounces "unilateral protectionism" at Boao Forum', 'Speech frames Beijing as defender of multilateral trade architecture.'],
+      ['Global Times', 'Eastern', 'supportive', 'Chinese semiconductor self-sufficiency milestone reached', 'SMIC reportedly produces 5nm-class chips using domestic equipment chains.'],
+      ['The New York Times', 'Western', 'critical', 'How a tariff-by-tariff cycle is reshaping global supply chains', 'Manufacturers describe accelerating "China+1" investment outside the mainland.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Apple shifts more iPad assembly to Vietnam in 2026 plan', 'Diversification effort hits 30% of mobile device output threshold.'],
+      ['South China Morning Post', 'Eastern', 'measured', 'Hong Kong banks brace for sanctions compliance overhaul', 'Authority issues guidance on screening cross-border yuan settlements.'],
+      ['Le Monde', 'European', 'critical', 'France warns of "subsidy arms race" in clean tech', 'Paris pushes Brussels to mirror US Inflation Reduction Act with European package.'],
+      ['Deutsche Welle', 'European', 'measured', 'German auto exports to China fall 17% year-on-year', 'BMW and Mercedes warn of structural shift, not cyclical downturn.'],
+      ['Reuters', 'Western', 'neutral', 'IMF flags fragmentation costs at up to 7% of global GDP', 'Working paper estimates long-run impact of accelerating economic decoupling.'],
+      ['Al Jazeera', 'Regional', 'measured', 'BRICS expansion brings new trade-financing options', 'New Development Bank explores yuan-settled credit lines for member states.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan toughens chip equipment export rules toward China', 'METI aligns 14nm-and-below restrictions more closely with US framework.'],
+      ['Times of India', 'Eastern', 'neutral', 'India seeks to capture displaced electronics supply chains', 'PLI scheme expansion targets passive component manufacturing.'],
+      ['Bloomberg', 'Western', 'neutral', 'TikTok divestment deadline triggers court showdown', 'Federal appeals panel hears arguments on First Amendment challenge.'],
+      ['Reuters', 'Western', 'neutral', 'Boeing-COMAC widebody competition heats up in Southeast Asia', 'Indonesian carrier weighs C929 order against 777X commitments.'],
+      ['BBC', 'Western', 'neutral', 'African leaders push back on US-China binary at AU summit', 'Continental envoys signal preference for transactional, non-aligned posture.'],
+      ['El País', 'European', 'measured', 'Spanish ports report record Chinese transshipment volumes', 'Algeciras and Valencia benefit from rerouting away from US gateway hubs.'],
+      ['Xinhua', 'Eastern', 'supportive', 'Belt and Road green investment grows 38% year-on-year', 'Renewable projects now constitute majority of new BRI loan book.'],
+    ],
+  },
+
+  // ─── 4. AI REGULATION ────────────────────────────────────────────────────
+  ai: {
+    aliases: ['ai', 'artificial intelligence', 'gemini', 'openai', 'anthropic', 'chatgpt', 'llm', 'eu ai act', 'regulation'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'EU AI Act enforcement begins for general-purpose models', 'Commission publishes long-awaited code of practice; major labs pledge cooperation.'],
+      ['BBC', 'Western', 'neutral', 'UK\'s AI Safety Institute publishes evaluation findings on frontier models', 'Report cites improvements in jailbreak resistance but persistent biosecurity concerns.'],
+      ['Bloomberg', 'Western', 'neutral', 'Anthropic raises $5B at $40B valuation', 'Round led by sovereign wealth funds; Google\'s stake reportedly grows further.'],
+      ['Financial Times', 'Western', 'neutral', 'OpenAI revenue run-rate crosses $10B milestone', 'Enterprise tier and ChatGPT Pro subscriptions drive 240% YoY growth.'],
+      ['The New York Times', 'Western', 'critical', 'Newsroom lawsuits against AI labs consolidate in Manhattan court', 'Judge orders coordinated discovery across nine pending copyright actions.'],
+      ['The Guardian', 'European', 'critical', 'Workers describe "always-on" surveillance as AI tools enter call centers', 'Union research finds new monitoring practices outpace existing labor frameworks.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Microsoft restructures AI division under new "agents" mandate', 'Reorganization signals shift from chatbots to autonomous task execution.'],
+      ['Le Monde', 'European', 'measured', 'Mistral courts French government as sovereign AI champion', 'Paris weighs preferential procurement to anchor European model ecosystem.'],
+      ['Deutsche Welle', 'European', 'measured', 'German Mittelstand cautious on AI integration despite hype', 'Industry survey finds adoption stalled by data residency and IP concerns.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan adopts soft-law AI guidelines distinct from EU model', 'METI framework emphasizes voluntary commitments and sector-specific carve-outs.'],
+      ['Xinhua', 'Eastern', 'supportive', 'Chinese open-source models gain ground in global benchmarks', 'Qwen and DeepSeek variants top several leaderboards in recent independent evaluations.'],
+      ['Reuters', 'Western', 'neutral', 'Apple Intelligence rollout extends to four new languages', 'On-device features ship for French, German, Japanese, and Spanish locales.'],
+      ['Times of India', 'Eastern', 'neutral', 'India\'s sovereign AI compute cluster goes online', 'Digital India mission allocates 10,000 GPUs across academic and startup tiers.'],
+      ['BBC', 'Western', 'measured', 'Synthetic media disclosure rules diverge across jurisdictions', 'Comparative analysis maps EU, US, UK, and Singapore approaches to deepfake labeling.'],
+      ['Bloomberg', 'Western', 'neutral', 'Nvidia data-center revenue beats expectations again', 'Hopper and Blackwell shipments drive 78% growth despite export-control headwinds.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Arab AI summit launches multilingual Arabic frontier model', 'UAE-funded consortium sets out roadmap for region-specific evaluations.'],
+      ['Reuters', 'Western', 'neutral', 'AI energy demand forecasts split between IEA and McKinsey', 'Estimates of 2030 data-center load now span a 350TWh range.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Wall Street\'s AI-stock rally broadens beyond magnificent seven', 'Cooling, networking, and power infrastructure names lead second-derivative trade.'],
+      ['Le Monde', 'European', 'critical', 'Paris court fines social network for inadequate deepfake removal', 'Ruling extends Digital Services Act scope to election-period synthetic content.'],
+      ['Xinhua', 'Eastern', 'supportive', 'Shanghai opens autonomous-driving testbed to foreign developers', 'Move signals openness even as regulatory walls rise in adjacent sectors.'],
+    ],
+  },
+
+  // ─── 5. CLIMATE ──────────────────────────────────────────────────────────
+  climate: {
+    aliases: ['climate', 'cop', 'global warming', 'emissions', 'carbon', 'fossil fuel', 'renewable', 'paris agreement'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'COP31 host city named amid tense lobbying round', 'Decision follows 14-month standoff over geographic rotation principles.'],
+      ['BBC', 'Western', 'neutral', '2025 confirmed as warmest year on record by WMO', 'Annual State of the Climate report shows 1.55C anomaly above pre-industrial average.'],
+      ['The Guardian', 'European', 'critical', 'Investigation: oil majors\' 2030 transition pledges quietly trimmed', 'Cross-border reporting finds capex shifts back toward upstream production.'],
+      ['Bloomberg', 'Western', 'neutral', 'Global EV sales pass 20 million units for first time', 'BNEF data shows 32% YoY growth led by China and emerging markets.'],
+      ['Financial Times', 'Western', 'neutral', 'Carbon border adjustment expansion under EU review', 'Hydrogen, polymers, and downstream products under consideration for next phase.'],
+      ['Le Monde', 'European', 'measured', 'France\'s nuclear renaissance hits financing wall', 'EDF cost overruns prompt reconsideration of state-backed guarantee structure.'],
+      ['Deutsche Welle', 'European', 'measured', 'Germany meets 2030 renewable target six years early', 'Wind and solar additions outpace planning; grid bottlenecks now binding constraint.'],
+      ['Al Jazeera', 'Regional', 'critical', 'Pacific island states intensify legal push at ICJ', 'Vanuatu-led coalition awaits advisory opinion on climate obligations.'],
+      ['Xinhua', 'Eastern', 'supportive', 'China announces additional 2030 emissions cap pledge', 'NDC update includes economy-wide absolute target alongside intensity metric.'],
+      ['Asahi Shimbun', 'Eastern', 'measured', 'Japan revises hydrogen strategy with stricter low-carbon definition', 'METI tightens "clean hydrogen" criteria to align with international standards.'],
+      ['Reuters', 'Western', 'neutral', 'Methane satellite finds super-emitters at 1,200 sites globally', 'MethaneSAT first-year data triples number of identified large leaks.'],
+      ['BBC', 'Western', 'neutral', 'Atlantic hurricane outlook upgraded to "extremely active"', 'NOAA cites record sea-surface temperatures and weak shear conditions.'],
+      ['The New York Times', 'Western', 'sympathetic', 'How a Louisiana parish moved an entire community inland', 'Long-read examines first federally-funded climate relocation, four years on.'],
+      ['Bloomberg', 'Western', 'neutral', 'Voluntary carbon market shows fragile recovery in Q1', 'New integrity council labels lift average credit prices for select project types.'],
+      ['El País', 'European', 'measured', 'Iberian heatwave shifts spring tourism patterns north', 'Tour operators report bookings to Norway and Iceland up 41%.'],
+      ['Reuters', 'Western', 'neutral', 'Brazilian Amazon deforestation drops to 16-year low', 'Annual INPE data shows 38% decline; analysts caution against reading too soon.'],
+      ['The Guardian', 'European', 'critical', 'UN report: coal pipeline still inconsistent with 1.5C', '350GW of new capacity planned through 2030, mostly in three countries.'],
+      ['Financial Times', 'Western', 'neutral', 'Climate-related insurance gap widens to $250B', 'Munich Re data shows protection shortfall growing fastest in middle-income nations.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan launches first commercial floating offshore wind farm', '110MW pilot off Akita prefecture targets full operation in late 2026.'],
+      ['Al Jazeera', 'Regional', 'measured', 'African Carbon Markets Initiative posts first auction results', 'Regional buyers absorb 70% of inaugural credit batch from cookstove projects.'],
+    ],
+  },
+
+  // ─── 6. IRAN ─────────────────────────────────────────────────────────────
+  iran: {
+    aliases: ['iran', 'tehran', 'nuclear deal', 'jcpoa', 'iaea', 'sanctions', 'iranian'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'IAEA report finds Iranian uranium stockpile at near-weapons grade', 'Quarterly verification document cites continued enrichment at undeclared site.'],
+      ['BBC', 'Western', 'neutral', 'Tehran signals openness to revived nuclear talks via Oman', 'Foreign minister statement frames diplomacy as preferred path forward.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Iran-Saudi rapprochement deepens with consular reopenings', 'Embassies in Tehran and Riyadh now staffed at pre-2016 levels.'],
+      ['Bloomberg', 'Western', 'neutral', 'Iranian crude exports surge to five-year high', 'Kpler tracking shows 1.7M b/d average, mostly to discounted Chinese buyers.'],
+      ['Financial Times', 'Western', 'neutral', 'EU divided on snapback mechanism timing', 'Paris and Berlin diverge on whether to trigger pre-October deadline.'],
+      ['The New York Times', 'Western', 'critical', 'Inside the IRGC\'s expanding regional logistics network', 'Investigation maps weapons flows to allied groups despite tightened sanctions.'],
+      ['Le Monde', 'European', 'measured', 'French envoy warns "window narrowing" on diplomatic track', 'Quai d\'Orsay readout signals frustration after Vienna technical talks.'],
+      ['Xinhua', 'Eastern', 'supportive', 'Beijing welcomes Tehran into expanded SCO cooperation framework', 'Counter-terrorism and energy working groups added to bilateral agenda.'],
+      ['Times of Israel', 'Israeli', 'critical', 'Israeli officials warn of "military option" against enrichment sites', 'Cabinet briefing reportedly presents updated strike package to PM.'],
+      ['Haaretz', 'Israeli', 'measured', 'Former Mossad chief calls military strike "high-cost gamble"', 'Op-ed urges renewed coordination with Washington on covert containment.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan resumes limited Iranian oil imports under sanctions waiver', 'METI confirms first cargo since 2019 lands at Chiba refinery.'],
+      ['Reuters', 'Western', 'neutral', 'Iranian rial slides to new low against dollar', 'Open-market rate breaches 700,000 mark amid sanctions uncertainty.'],
+      ['BBC', 'Western', 'measured', 'Crackdown intensifies against women defying hijab law', 'New "morality patrols" deployed in Tehran shopping districts and metro stations.'],
+      ['Al Arabiya', 'Regional', 'measured', 'Gulf foreign ministers urge "dialogue with verification" with Iran', 'GCC statement marks shift from earlier confrontation-first posture.'],
+      ['The Guardian', 'European', 'critical', 'Iranian dissidents abroad report new wave of intimidation campaigns', 'Multiple European intelligence agencies confirm coordinated targeting patterns.'],
+      ['Reuters', 'Western', 'neutral', 'Iran-backed Houthi attacks on Red Sea shipping continue at lower tempo', 'CENTCOM data shows incident frequency down 60% from January peak.'],
+      ['Deutsche Welle', 'European', 'measured', 'Berlin expels three Iranian diplomats over plot allegations', 'Federal prosecutor announces parallel criminal investigation.'],
+      ['NYT', 'Western', 'neutral', 'Iranian elections produce reformist president in surprise result', 'Pezeshkian wins runoff against hardliner; foreign policy continuity expected.'],
+      ['Times of India', 'Eastern', 'neutral', 'India-Iran Chabahar port deal navigates US sanctions exemption', 'New Delhi secures special license; Washington signals tactical tolerance.'],
+      ['Bloomberg', 'Western', 'neutral', 'Iranian shadow tanker fleet identified at 380 vessels', 'United Against Nuclear Iran data underscores enforcement complexity.'],
+    ],
+  },
+
+  // ─── 7. TAIWAN ───────────────────────────────────────────────────────────
+  taiwan: {
+    aliases: ['taiwan', 'taipei', 'cross-strait', 'tsmc', 'pla', 'china strait'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'PLA Navy conducts largest exercise around Taiwan since 2024', '125 aircraft and 41 vessels detected; Taipei activates response systems.'],
+      ['BBC', 'Western', 'neutral', 'Taiwan\'s president stresses "status quo" in Double Ten address', 'Speech balances defense readiness with renewed dialogue offer.'],
+      ['Bloomberg', 'Western', 'neutral', 'TSMC second Arizona fab on schedule for 2026 production', 'Investment crosses $65B mark amid expanded US tax credit eligibility.'],
+      ['Financial Times', 'Western', 'neutral', 'TSMC\'s European fab partners brace for tooling delays', 'Dresden site adjusts ramp timeline as ASML lead times extend.'],
+      ['South China Morning Post', 'Eastern', 'measured', 'Beijing\'s Taiwan Affairs Office briefing strikes mixed tone', 'Spokesperson invokes "fellow countrymen" framing alongside warning to "separatist forces".'],
+      ['Xinhua', 'Eastern', 'supportive', 'Cross-strait economic forum opens with new tourism corridor', 'Fujian-Taipei direct ferry service announced for resumption.'],
+      ['Global Times', 'Eastern', 'critical', 'External interference in Taiwan elections "doomed to fail"', 'Editorial responds to US arms package announcement with stark language.'],
+      ['The New York Times', 'Western', 'measured', 'Pentagon revises Taiwan defense posture for "porcupine" doctrine', 'Pivot toward distributed lethality reshapes munitions priorities.'],
+      ['Le Monde', 'European', 'measured', 'European chip industry watches Taiwan tensions nervously', 'STMicro and Infineon stress-test supply chains for two-week disruption scenarios.'],
+      ['Deutsche Welle', 'European', 'measured', 'German trade with Taiwan reaches new high despite political caution', 'Bilateral exchanges grew 18% in 2025 led by industrial machinery.'],
+      ['Asahi Shimbun', 'Eastern', 'measured', 'Japanese SDF holds joint exercise with US in Sakishima Islands', 'Drills emphasize logistics resilience under contested conditions.'],
+      ['Reuters', 'Western', 'neutral', 'Taiwan boosts defense budget by 7% for 2026', 'New procurement focuses on missile defense and unmanned platforms.'],
+      ['Al Jazeera', 'Regional', 'measured', 'ASEAN issues rare cross-strait stability statement', 'Indonesian chairmanship navigates between Beijing pressure and member concerns.'],
+      ['BBC', 'Western', 'neutral', 'Taiwan undersea cable cut investigated as possible sabotage', 'Two ships flagged for further questioning; Taipei stops short of attribution.'],
+      ['Wall Street Journal', 'Western', 'measured', 'US war-game results show 14-day munitions burn for Pacific scenario', 'Internal Pentagon assessment cited in congressional briefing.'],
+      ['Bloomberg', 'Western', 'neutral', 'Taiwan central bank intervenes as currency pressure builds', 'NTD weakness blamed on geopolitical premium and capital outflows.'],
+      ['Times of India', 'Eastern', 'neutral', 'Taiwan diversifies trade office presence in Indian states', 'Five new representative offices target electronics manufacturing hubs.'],
+      ['Reuters', 'Western', 'neutral', 'Taiwan grants permanent residency to 2,400 chip engineers', 'Talent pull program targets specialists from US, Korea, and Japan.'],
+      ['Xinhua', 'Eastern', 'critical', 'US arms sale to Taiwan "violates one-China principle"', 'Sanctions imposed on three American defense firms.'],
+      ['The Guardian', 'European', 'measured', 'Taiwan\'s civil defense network sees record volunteer signups', 'Citizen training programs report 3x demand following 2025 incursions.'],
+    ],
+  },
+
+  // ─── 8. INFLATION / FED ──────────────────────────────────────────────────
+  inflation: {
+    aliases: ['inflation', 'fed', 'interest rate', 'economy', 'cpi', 'recession', 'central bank', 'powell'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'Fed holds rates steady, signals two cuts later in 2026', 'FOMC dot-plot revised; Powell cautions on services-sector stickiness.'],
+      ['BBC', 'Western', 'neutral', 'UK inflation falls to 2.1%, near BoE target', 'Services price growth moderates; food disinflation continues.'],
+      ['Bloomberg', 'Western', 'neutral', 'ECB cuts deposit rate by 25bp to 2.75%', 'Lagarde emphasizes data dependence; markets price two more cuts.'],
+      ['Financial Times', 'Western', 'neutral', 'Bank of Japan exits negative rates, ends YCC framework', 'Historic shift caps decade of unconventional easing.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Sticky housing inflation complicates Fed playbook', 'Owners-equivalent rent gains fail to roll over as predicted.'],
+      ['The New York Times', 'Western', 'measured', 'Insurance costs become new inflation flashpoint', 'Auto and home premiums up double-digits despite headline disinflation.'],
+      ['Le Monde', 'European', 'measured', 'French growth surprise lifts Q1 forecast', 'INSEE upgrades estimate to 0.6%; consumer spending leads turnaround.'],
+      ['Deutsche Welle', 'European', 'critical', 'Germany faces second consecutive year of contraction', 'Industrial output remains 12% below 2019 peak; structural debate intensifies.'],
+      ['Asahi Shimbun', 'Eastern', 'measured', 'Japanese wage growth hits 33-year high in spring offensive', '"Shunto" results show 5.2% average gain at major employers.'],
+      ['Xinhua', 'Eastern', 'supportive', 'China\'s manufacturing PMI returns to expansion', 'Fiscal stimulus measures credited with stabilizing factory orders.'],
+      ['Reuters', 'Western', 'neutral', 'Argentina\'s monthly inflation falls below 4% for first time', 'Milei austerity program produces first sustained price moderation.'],
+      ['Bloomberg', 'Western', 'neutral', 'Turkish lira finds floor as central bank credibility rebuilds', 'Real rates now solidly positive after series of aggressive hikes.'],
+      ['Financial Times', 'Western', 'neutral', 'Global manufacturing PMI expands for fifth straight month', 'JP Morgan composite hits 51.4; emerging markets lead acceleration.'],
+      ['BBC', 'Western', 'measured', 'Cost-of-living squeeze persists despite easing CPI', 'ONS data shows essentials inflation outpaces headline figure.'],
+      ['Al Jazeera', 'Regional', 'measured', 'IMF urges sub-Saharan Africa to maintain fiscal discipline', 'Regional Economic Outlook flags debt servicing as top vulnerability.'],
+      ['Times of India', 'Eastern', 'neutral', 'RBI keeps repo rate at 6.50%, MPC turns less hawkish', 'Stance shifts to "neutral" from "withdrawal of accommodation".'],
+      ['Reuters', 'Western', 'neutral', 'OECD upgrades 2026 global growth forecast to 3.2%', 'Better US and Asian outlook offsets European softness.'],
+      ['Wall Street Journal', 'Western', 'measured', 'US labor market shows unusual mix of soft hiring, low layoffs', 'Beveridge curve continues to puzzle Fed policymakers.'],
+      ['Bloomberg', 'Western', 'neutral', 'Gold breaches $2,800 as central banks keep buying', 'Q1 reserve purchases led by China, Poland, and Singapore.'],
+      ['El País', 'European', 'measured', 'Spain remains eurozone\'s fastest-growing major economy', 'Tourism rebound and EU funds drive 2.4% expansion.'],
+    ],
+  },
+
+  // ─── 9. ELECTIONS / DEMOCRACY ────────────────────────────────────────────
+  election: {
+    aliases: ['election', 'democracy', 'vote', 'campaign', 'congress', 'senate', 'parliament', 'midterm'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'US midterm primaries reshape House battleground map', 'Several incumbents fall in low-turnout contests; redistricting cases pending.'],
+      ['BBC', 'Western', 'neutral', 'UK by-election delivers another swing to opposition Reform', 'Result extends pattern across post-industrial constituencies.'],
+      ['The New York Times', 'Western', 'measured', 'Voter ID laws face fresh scrutiny in three states', 'Federal challenges cite disparate impact data from 2024 cycle.'],
+      ['The Guardian', 'European', 'critical', 'Rise of far-right at European Parliament forces alliance reshuffle', 'Centrist groups negotiate procedural firewalls ahead of presidency votes.'],
+      ['Le Monde', 'European', 'measured', 'French legislative coalition holds together at one-year mark', 'Premier survives third no-confidence vote with narrow margin.'],
+      ['Deutsche Welle', 'European', 'measured', 'German firewall against AfD strained by state-level coalition math', 'CDU debates internal rules ahead of pivotal Saxony-Anhalt vote.'],
+      ['Bloomberg', 'Western', 'neutral', 'Indian state elections deliver mixed verdict for ruling alliance', 'BJP holds three of five contests; Congress regains key southern stronghold.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Mexican judicial reform implementation enters volatile second phase', 'First elected supreme court justices take bench amid procedural uncertainty.'],
+      ['Xinhua', 'Eastern', 'supportive', 'Chinese governance system "delivers stability" amid global volatility', 'Commentary contrasts CCP model with "polarization" elsewhere.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan\'s ruling LDP confronts post-scandal rebuild', 'Internal poll shows lowest support since 2009 ahead of leadership vote.'],
+      ['Times of India', 'Eastern', 'neutral', 'Election Commission rolls out remote voting trial for migrant workers', 'Pilot covers 12 states; full rollout pending parliamentary review.'],
+      ['Reuters', 'Western', 'neutral', 'Argentine midterms test Milei agenda after first 18 months', 'Polls show La Libertad Avanza positioned to triple congressional footprint.'],
+      ['BBC', 'Western', 'neutral', 'African Union election observation mission size reaches new high', 'Continental body fields teams to 14 national contests this year.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Campaign spending records broken in three Senate races', 'Outside groups account for majority of total ad expenditure.'],
+      ['Le Monde', 'European', 'measured', 'European Court rules member states must standardize ballot access', 'Decision impacts smaller parties\' transnational list participation.'],
+      ['The Guardian', 'European', 'critical', 'Disinformation networks flagged across 23 European elections', 'EU-funded research shows acceleration in AI-generated content distribution.'],
+      ['Reuters', 'Western', 'neutral', 'Brazil prepares pioneering deepfake election rule for 2026', 'TSE finalizes labeling regime ahead of municipal cycle.'],
+      ['Bloomberg', 'Western', 'neutral', 'Polish coalition advances rule-of-law reforms', 'Sejm approves judicial appointment changes; presidential veto looms.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Tunisian opposition figures detained ahead of presidential vote', 'Civil society groups question competitiveness of upcoming contest.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'South Korean opposition expands lead in latest Gallup poll', 'PM\'s approval falls below 30% amid economic and personnel disputes.'],
+    ],
+  },
+
+  // ─── 10. CRYPTO ──────────────────────────────────────────────────────────
+  crypto: {
+    aliases: ['bitcoin', 'crypto', 'ethereum', 'stablecoin', 'btc', 'sec', 'binance', 'coinbase'],
+    items: [
+      ['Bloomberg', 'Western', 'neutral', 'Bitcoin breaches $115,000 amid spot ETF inflow surge', 'BlackRock IBIT crosses $80B AUM mark in record fund time.'],
+      ['Reuters', 'Western', 'neutral', 'SEC approves first basket crypto ETF including five tokens', 'Decision broadens institutional access beyond BTC and ETH spot products.'],
+      ['Financial Times', 'Western', 'neutral', 'Stablecoin market cap hits $300B as US bill advances', 'Senate banking committee schedules markup on payment-rails legislation.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Coinbase posts blowout quarter as regulatory clarity returns', 'Trading and stablecoin revenue both hit records; international expansion accelerates.'],
+      ['BBC', 'Western', 'measured', 'UK FCA finalizes stablecoin issuer licensing regime', 'Framework gives 18-month transition window to existing operators.'],
+      ['The New York Times', 'Western', 'critical', 'How a meme-coin scheme drained millions from retail traders', 'Investigation traces social-media playbook used across multiple cycles.'],
+      ['The Guardian', 'European', 'critical', 'Crypto energy use diverges as bitcoin mining shifts geographies', 'Cambridge data shows decoupling from carbon-intensive grids in Q1.'],
+      ['Le Monde', 'European', 'measured', 'European MiCA framework enters second-stage enforcement', 'Token-issuer registration deadline triggers consolidation among smaller exchanges.'],
+      ['Deutsche Welle', 'European', 'measured', 'Bundesbank pilots wholesale CBDC settlement with three banks', 'Trial extends earlier proof-of-concept into real-value transfers.'],
+      ['Reuters', 'Western', 'neutral', 'Tether reports record $5.2B quarterly profit', 'T-bill holdings reach $108B; reserves now exceed all but a handful of nation-states.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japanese banks pilot yen-denominated stablecoin for remittances', 'MUFG and SMBC consortium targets cross-border SME corridors.'],
+      ['Xinhua', 'Eastern', 'measured', 'China\'s digital yuan extends to all 31 provincial-level regions', 'Cumulative transaction value crosses 8 trillion yuan threshold.'],
+      ['Bloomberg', 'Western', 'neutral', 'Ether staking ratio approaches 30% amid restaking growth', 'Liquid staking tokens dominate composability layer in DeFi.'],
+      ['South China Morning Post', 'Eastern', 'measured', 'Hong Kong\'s crypto licensing regime onboards eighth platform', 'SFC continues steady approvals while warning unregistered operators.'],
+      ['Reuters', 'Western', 'neutral', 'IMF issues updated guidance on stablecoin macroprudential policy', 'Working paper urges tiered reserve standards across jurisdictions.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Crypto lobbying spending hits all-time high in Washington', 'Quarterly disclosures exceed $100M for first time across the sector.'],
+      ['Financial Times', 'Western', 'neutral', 'Solana network throughput record hit during NFT mint frenzy', 'Validator set adds 80 nodes amid debate over decentralization metrics.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Nigerian central bank lifts last restrictions on crypto banking', 'Move acknowledges adoption realities in Africa\'s largest market.'],
+      ['Times of India', 'Eastern', 'neutral', 'India tax-collected-at-source on crypto reportedly halved', 'Finance ministry signals review amid weak compliance and offshore migration.'],
+      ['Bloomberg', 'Western', 'neutral', 'Real-world asset tokenization pilot launches at major custodian', 'BNY Mellon platform tokenizes money-market fund shares for institutional clients.'],
+    ],
+  },
+
+  // ─── 11. TECH ────────────────────────────────────────────────────────────
+  tech: {
+    aliases: ['apple', 'google', 'microsoft', 'amazon', 'meta', 'tech', 'silicon valley', 'startup'],
+    items: [
+      ['Bloomberg', 'Western', 'neutral', 'Apple unveils new MacBook Pro lineup with M5 silicon', 'Performance gains center on neural engine throughput and memory bandwidth.'],
+      ['Reuters', 'Western', 'neutral', 'Google ordered to share Chrome data with rivals', 'Antitrust remedy phase introduces new interoperability requirements.'],
+      ['Financial Times', 'Western', 'neutral', 'Microsoft cloud growth steady at 31% YoY', 'AI-related Azure consumption now contributes 12 points to top line.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Amazon reorganizes retail unit under unified leadership', 'Move follows years of separate North America and international P&L management.'],
+      ['The New York Times', 'Western', 'measured', 'Meta\'s smart glasses reach 5 million units shipped', 'Ray-Ban partnership expands beyond original three-country footprint.'],
+      ['BBC', 'Western', 'neutral', 'EU clears Microsoft acquisition of cybersecurity firm with conditions', 'Behavioral remedies focus on EDR market interoperability commitments.'],
+      ['The Guardian', 'European', 'critical', 'Amazon warehouse strikes spread across three European countries', 'Coordinated action over peak-season scheduling and surveillance practices.'],
+      ['Le Monde', 'European', 'measured', 'French DMA enforcement targets app-store steering rules', 'Apple and Google face fresh fines for non-compliance with anti-steering provisions.'],
+      ['Deutsche Welle', 'European', 'measured', 'SAP cloud transition reaches 80% of revenue base', 'German enterprise giant\'s pivot now visible in operating margin acceleration.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Sony PS5 lifetime sales pass 75 million units', 'Pro variant adoption tracks ahead of company\'s internal projections.'],
+      ['Xinhua', 'Eastern', 'supportive', 'Huawei smartphone shipments surge 38% in Q1', 'Mate 80 series and Pura X foldable lead premium segment recovery.'],
+      ['Times of India', 'Eastern', 'neutral', 'India electronics exports cross $30B annual milestone', 'Smartphone manufacturing now accounts for two-thirds of total volume.'],
+      ['Reuters', 'Western', 'neutral', 'Spotify hits 700M monthly active users, raises prices again', 'Premium ARPU growth offsets ad-tier softness in mature markets.'],
+      ['South China Morning Post', 'Eastern', 'measured', 'BYD overtakes Tesla in global EV sales for second straight quarter', 'Hybrid lineup expansion outside China drives outperformance.'],
+      ['Bloomberg', 'Western', 'neutral', 'Nvidia announces new AI workstation lineup for prosumer market', 'Spectrum-X networking gear pairs with Blackwell variants for desktop deployments.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Streaming bundles consolidate as price hikes continue', 'Disney-Max-Hulu offering signals shift toward fewer, larger packages.'],
+      ['BBC', 'Western', 'neutral', 'X cuts another 20% of trust-and-safety staff', 'Restructuring ahead of Brazilian content compliance ruling.'],
+      ['Financial Times', 'Western', 'neutral', 'OpenAI codes-only Pro tier launches for software teams', 'New SKU competes with GitHub Copilot Enterprise on agent autonomy.'],
+      ['Reuters', 'Western', 'neutral', 'Samsung weighs spinning off semiconductor manufacturing arm', 'Internal review tests structural separation favored by activist investors.'],
+      ['El País', 'European', 'measured', 'Spanish data-center buildout strains regional power planning', 'Madrid and Aragón regulators coordinate on grid-connection sequencing.'],
+    ],
+  },
+
+  // ─── 12. HEALTH ──────────────────────────────────────────────────────────
+  health: {
+    aliases: ['health', 'who', 'pandemic', 'vaccine', 'covid', 'cancer', 'medical', 'fda', 'pharma'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'WHO concludes pandemic accord text after years of negotiations', 'Member states adopt framework on pathogen sharing and surge response.'],
+      ['BBC', 'Western', 'neutral', 'NHS trials AI-assisted breast cancer screening at scale', 'Pilot covers 13 trusts; early data shows comparable sensitivity, lower workload.'],
+      ['The New York Times', 'Western', 'measured', 'New GLP-1 indications continue to expand', 'FDA labels broaden to include cardiovascular and addiction-adjacent conditions.'],
+      ['Bloomberg', 'Western', 'neutral', 'Eli Lilly margin guidance raised on supply normalization', 'Tirzepatide capacity additions allow shift from rationing to growth mode.'],
+      ['Financial Times', 'Western', 'neutral', 'Novo Nordisk faces patent challenge in five jurisdictions', 'Biosimilar development accelerates ahead of mid-decade exclusivity expiries.'],
+      ['Le Monde', 'European', 'measured', 'France launches national mental-health initiative for under-25s', 'Free counseling sessions and tele-therapy expanded to all departments.'],
+      ['Deutsche Welle', 'European', 'measured', 'Germany approves first cell therapy under accelerated pathway', 'EMA-aligned reimbursement guidance to follow within 90 days.'],
+      ['Al Jazeera', 'Regional', 'measured', 'WHO declares yellow fever public health emergency in Sahel', 'Cross-border outbreak prompts emergency stockpile mobilization.'],
+      ['Xinhua', 'Eastern', 'supportive', 'China\'s domestic insulin pricing reform delivers projected savings', 'Centralized procurement cuts patient out-of-pocket costs by half.'],
+      ['Asahi Shimbun', 'Eastern', 'measured', 'Japanese aging society spurs robotics-in-care initiative', 'METI funds 200 elder-care robotics deployments across nursing facilities.'],
+      ['Reuters', 'Western', 'neutral', 'Antibiotic resistance projected to cause 1.9M deaths by 2030', 'Lancet study urges accelerated stewardship and incentive reform.'],
+      ['Bloomberg', 'Western', 'neutral', 'CRISPR-based sickle cell therapy reaches 1,000-patient milestone', 'Real-world evidence reinforces durability and safety profile.'],
+      ['BBC', 'Western', 'neutral', 'New respiratory virus subtype monitored in Southeast Asia', 'Sequencing data shared via global GISAID-equivalent network for surveillance.'],
+      ['The Guardian', 'European', 'critical', 'Investigation: vape exports to LMICs evade health regulations', 'Cross-border supply chains route around domestic restrictions.'],
+      ['Wall Street Journal', 'Western', 'measured', 'PBM reform legislation gains rare bipartisan momentum', 'Drug pricing intermediaries face new transparency requirements.'],
+      ['Reuters', 'Western', 'neutral', 'Hospital cyberattack disrupts care across regional health network', 'Operations partially restored after week-long ransomware response.'],
+      ['Le Monde', 'European', 'measured', 'European cancer plan funding extended through 2030', 'Member-state co-financing rules eased for low-income regions.'],
+      ['Times of India', 'Eastern', 'neutral', 'India\'s Ayushman Bharat enrollment crosses 700 million', 'Coverage expansion now extends to senior citizens above 70.'],
+      ['Al Arabiya', 'Regional', 'measured', 'Saudi healthcare privatization advances with new operator awards', 'Five hospital clusters transition to public-private operating model.'],
+      ['DW', 'European', 'measured', 'European Medicines Agency revises gene-therapy review timelines', 'Update aims to align EU pace with US accelerated approval mechanisms.'],
+    ],
+  },
+
+  // ─── 13. SPACE ───────────────────────────────────────────────────────────
+  space: {
+    aliases: ['space', 'spacex', 'nasa', 'rocket', 'satellite', 'mars', 'iss', 'moon', 'starship'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'SpaceX Starship completes orbital refueling demonstration', 'Milestone unlocks key dependency for Artemis crewed lunar landing.'],
+      ['BBC', 'Western', 'neutral', 'NASA announces Artemis 4 crew, including ESA astronaut', 'Mission targets first full lunar surface science campaign of program.'],
+      ['Bloomberg', 'Western', 'neutral', 'Starlink subscribers cross 8 million worldwide', 'Maritime and aviation tiers now contribute meaningfully to revenue.'],
+      ['Financial Times', 'Western', 'neutral', 'European launcher Ariane 6 enters operational cadence', 'Backlog clearance progresses with Galileo and Eumetsat payloads.'],
+      ['Le Monde', 'European', 'measured', 'France\'s ArianeGroup considers reusable booster program', 'Salto demonstrator paves way for follow-on launcher decision.'],
+      ['Deutsche Welle', 'European', 'measured', 'German microlauncher company secures €200M Series D', 'Round signals continued European appetite for sovereign space capabilities.'],
+      ['Xinhua', 'Eastern', 'supportive', 'China\'s Tiangong space station hosts first international crew', 'Pakistani astronaut joins Shenzhou-21 mission for two-week stay.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan\'s SLIM lunar lander wakes for fifth lunar day', 'JAXA reports surprising longevity from supposed one-night mission.'],
+      ['The New York Times', 'Western', 'measured', 'Space-debris liability case heads to international tribunal', 'Test of long-dormant Outer Space Treaty Article VII provisions.'],
+      ['Reuters', 'Western', 'neutral', 'India\'s Gaganyaan unscrewed test launch succeeds', 'ISRO clears key hardware milestone ahead of crewed flight target.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Defense Department awards launch contracts to four providers', 'New National Security Space Launch lane includes two new entrants.'],
+      ['BBC', 'Western', 'neutral', 'James Webb telescope detects atmospheric water on rocky exoplanet', 'Findings strengthen case for prioritizing similar M-dwarf system studies.'],
+      ['Bloomberg', 'Western', 'neutral', 'Space-tourism spending forecast reaches $1.4B by 2030', 'Suborbital and orbital experience providers scale flight cadences.'],
+      ['Al Jazeera', 'Regional', 'measured', 'UAE Mars science campaign produces new dust-storm dataset', 'Hope orbiter\'s long-duration observations published in peer-reviewed paper.'],
+      ['Reuters', 'Western', 'neutral', 'Space-based solar power demo cleared for 2027 launch', 'Caltech-led project secures launch vehicle and integration partner.'],
+      ['Xinhua', 'Eastern', 'supportive', 'China unveils plan for international lunar research station', 'Multi-decade roadmap published with seven partner-nation contributions.'],
+      ['DW', 'European', 'measured', 'ESA cybersecurity protocol for satellite operators released', 'Framework follows year of escalating jamming and spoofing reports.'],
+      ['Times of India', 'Eastern', 'neutral', 'India private launcher Skyroot completes engine qualification', 'Vikram-1 maiden orbital flight slated for late 2026.'],
+      ['Reuters', 'Western', 'neutral', 'New satellite constellation targets near-real-time wildfire detection', 'Public-private partnership pools data with national emergency agencies.'],
+      ['Bloomberg', 'Western', 'neutral', 'Asteroid mining venture announces in-space metallurgy demonstration', 'Pilot payload to test refining processes in microgravity conditions.'],
+    ],
+  },
+
+  // ─── 14. KOREA ───────────────────────────────────────────────────────────
+  korea: {
+    aliases: ['korea', 'north korea', 'south korea', 'pyongyang', 'seoul', 'kim jong un', 'dprk', 'rok'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'North Korea tests new solid-fuel intermediate-range missile', 'Trajectory and propulsion suggest expanded reach over Pacific theater.'],
+      ['BBC', 'Western', 'neutral', 'South Korean opposition leader survives knife attack', 'Suspect detained at public event in Busan; condition stable after surgery.'],
+      ['Asahi Shimbun', 'Eastern', 'measured', 'Japan-South Korea-US trilateral defense exercise underway', 'Carrier strike group joins for largest iteration since framework launched.'],
+      ['Bloomberg', 'Western', 'neutral', 'Samsung Electronics restructures semiconductor leadership', 'Foundry and memory units gain new presidents amid HBM competitive battle.'],
+      ['Financial Times', 'Western', 'neutral', 'South Korean shipbuilding orders climb on LNG carrier demand', 'HD Hyundai and Hanwha Ocean book five-year backlog at major yards.'],
+      ['The New York Times', 'Western', 'measured', 'Inside North Korean labor exports across the Russian Far East', 'Investigation traces revenue flows despite UN sanctions enforcement gaps.'],
+      ['Xinhua', 'Eastern', 'supportive', 'Beijing emphasizes "responsibility for stability" on Korean Peninsula', 'Foreign ministry briefing rejects "external" actors stoking tensions.'],
+      ['Wall Street Journal', 'Western', 'measured', 'US-South Korea cost-sharing agreement extended five years', 'New SMA reflects 8.3% increase; Seoul absorbs more local employee costs.'],
+      ['Reuters', 'Western', 'neutral', 'Inter-Korean military hotline silent for 600th consecutive day', 'Dialogue channels remain dormant despite Geneva-track diplomacy.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Russian-North Korean trade triples in past year', 'Munitions, labor, and food categories drive bilateral expansion.'],
+      ['BBC', 'Western', 'neutral', 'South Korea\'s ultra-low fertility rate hits 0.68', 'Government convenes emergency demographics task force for fresh response.'],
+      ['Le Monde', 'European', 'measured', 'EU joins US in fresh DPRK cyber unit sanctions', 'Coordinated action targets revenue-generating infrastructure abroad.'],
+      ['Deutsche Welle', 'European', 'measured', 'German fund manager wins K-pop content rights case', 'Ruling clarifies copyright treatment of fan-driven derivative works.'],
+      ['Reuters', 'Western', 'neutral', 'Hyundai Motor announces $7.6B Georgia EV plant expansion', 'Battery JV adds capacity targeting US Inflation Reduction Act eligibility.'],
+      ['Bloomberg', 'Western', 'neutral', 'Bank of Korea holds policy rate amid mixed signals', 'MPC vote shows growing dissent toward earlier pivot to easing.'],
+      ['Asahi Shimbun', 'Eastern', 'measured', 'Japan-Korea visa-free travel volumes hit pre-pandemic peaks', 'Tourism rebound supports gradual normalization of bilateral cultural ties.'],
+      ['Wall Street Journal', 'Western', 'measured', 'K-content global revenue crosses $35B in 2025', 'Streaming licensing and live tours both contribute to record total.'],
+      ['Times of India', 'Eastern', 'neutral', 'India-South Korea trade agreement upgrade negotiations resume', 'Talks aim to expand tariff coverage and address services-sector access.'],
+      ['Reuters', 'Western', 'neutral', 'North Korean satellite launch attempt fails for second straight try', 'Debris field tracked across Yellow Sea; payload recovery effort underway.'],
+      ['BBC', 'Western', 'measured', 'Defectors describe new restrictions on private market activity', 'Recent escapees report renewed crackdowns on unsanctioned trade.'],
+    ],
+  },
+
+  // ─── 15. AFRICA ──────────────────────────────────────────────────────────
+  africa: {
+    aliases: ['africa', 'african', 'sudan', 'sahel', 'nigeria', 'kenya', 'south africa', 'ethiopia', 'au'],
+    items: [
+      ['Reuters', 'Western', 'neutral', 'Sudan conflict death toll passes 150,000, monitoring group says', 'War enters third year with no diplomatic breakthrough in sight.'],
+      ['BBC', 'Western', 'neutral', 'Nigerian fuel subsidy phase-out enters disputed third stage', 'Trade unions threaten general strike over compensation framework.'],
+      ['Al Jazeera', 'Regional', 'measured', 'African Union expands Sahel envoy mandate', 'New facilitator empowered to engage all parties including transitional regimes.'],
+      ['The Guardian', 'European', 'critical', 'Sahel humanitarian funding gap widens to 60%', 'OCHA appeal sees lowest donor coverage rate since record-keeping began.'],
+      ['Le Monde', 'European', 'measured', 'France\'s Africa policy review urges narrower partnerships', 'Quai d\'Orsay paper suggests prioritizing economic over security framework.'],
+      ['Deutsche Welle', 'European', 'measured', 'Germany triples investment in African green hydrogen', 'Berlin-Namibia-South Africa partnership scales pilot to commercial production.'],
+      ['Bloomberg', 'Western', 'neutral', 'Kenya signs $1.6B IMF program despite protest pressure', 'Conditionality debate continues amid contested fiscal targets.'],
+      ['Financial Times', 'Western', 'neutral', 'African Continental Free Trade Area transactions cross $5B', 'Pilot guided trade initiative expands to 39 participating member states.'],
+      ['Xinhua', 'Eastern', 'supportive', 'China-Africa cooperation forum announces expanded debt-relief plan', 'New framework covers eight zero-interest loan categories through 2030.'],
+      ['Reuters', 'Western', 'neutral', 'Ethiopia GERD reservoir reaches full capacity', 'Final filling completes years-long dispute with Egypt and Sudan.'],
+      ['BBC', 'Western', 'measured', 'South African coalition government one year on', 'Cabinet survives motion of confidence; budget process highlights fault lines.'],
+      ['Al Arabiya', 'Regional', 'measured', 'Morocco-Spain green corridor delivers first hydrogen shipment', 'Bilateral framework presents template for other Mediterranean exporters.'],
+      ['Wall Street Journal', 'Western', 'measured', 'Mining giants compete for DRC cobalt as EV demand persists', 'Glencore and CMOC report higher Q1 production amid security investments.'],
+      ['NYT', 'Western', 'sympathetic', 'Inside the Lake Chad climate-displaced economy', 'Long-form report examines new economic patterns in adapted communities.'],
+      ['Bloomberg', 'Western', 'neutral', 'Eurobond market reopens for African sovereigns', 'Cote d\'Ivoire and Benin print new issues at lower premiums than 2024.'],
+      ['Times of India', 'Eastern', 'neutral', 'India-Africa pharmaceutical partnership produces first GMP plant', 'Tanzania facility addresses regional vaccine and ARV demand.'],
+      ['Reuters', 'Western', 'neutral', 'African vaccine manufacturing roadmap reaches midpoint review', 'Six countries now host or are commissioning fill-finish facilities.'],
+      ['DW', 'European', 'measured', 'Mozambique LNG project resumes after security improvements', 'TotalEnergies confirms restart timetable; production targeted for 2027.'],
+      ['Asahi Shimbun', 'Eastern', 'neutral', 'Japan launches African digital infrastructure financing window', 'JICA-led facility supports broadband and data-center expansion.'],
+      ['Al Jazeera', 'Regional', 'measured', 'Pan-African payment system processes record monthly volume', 'PAPSS adoption broadens beyond original participating central banks.'],
+    ],
+  },
+};
+
+// ─── Compile to flat article list ─────────────────────────────────────────
+export const ALL_ARTICLES = Object.entries(SEEDS).flatMap(([topicId, { aliases, items }]) =>
+  items.map((it, i) => {
+    const [source, region, tone, title, description] = it;
+    const sourceSlug = source.toLowerCase().replace(/\s+/g, '');
+    return {
+      topic: topicId,
+      aliases,
+      source,
+      region,
+      tone,
+      title,
+      description,
+      url: `https://${sourceSlug}.com/world/${topicId}/${slug(title)}-${i + 1}`,
+      urlToImage: `https://picsum.photos/seed/${topicId}-${i}/640/360`,
+      publishedAt: daysAgo(((i * 13) % 14) + 1),
+      author: null,
+    };
+  })
+);
+
+export const TOPIC_INDEX = SEEDS;
+
+export const ALL_SOURCES = [...new Set(ALL_ARTICLES.map((a) => a.source))];
+
+console.log(`📚 Loaded ${ALL_ARTICLES.length} hardcoded articles across ${Object.keys(SEEDS).length} topics`);
