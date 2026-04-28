@@ -8,27 +8,26 @@ import analyzeRoute from './routes/analyze.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Load env
 dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-  methods: ['GET', 'POST'],
-  credentials: true
-}));
+// ✅ FIX: allow frontend (and avoid CORS issues in prototype)
+app.use(cors()); 
+
 app.use(express.json());
 
-// Health check
+// ✅ Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Clarion API is running' });
 });
 
-// Main analysis route
+// ✅ Routes
 app.use('/api', analyzeRoute);
 
+// ✅ Start server (important for Render)
 app.listen(PORT, () => {
-  console.log(`\n🚀 Clarion API running on http://localhost:${PORT}`);
-  console.log(`📡 Health: http://localhost:${PORT}/api/health\n`);
+  console.log(`🚀 Clarion API running on port ${PORT}`);
 });
